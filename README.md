@@ -1,7 +1,7 @@
 # SQL_Data_Cleaning
 Nashville Housing Project
 ---
-![](https://miro.medium.com/v2/resize:fit:828/format:webp/1*cilm6DLWyv4nohGzkl44rA.png)
+![](https://it-s.com/wp-content/webp-express/webp-images/uploads/2021/11/why-data-cleansing-is-important-for-ecommerce-busi.jpeg.webp)
 ---
 To improve my SQL proficiency and showcase my query language skills, I cleaned the "Nashville Housing Dataset."
 ### Dataset
