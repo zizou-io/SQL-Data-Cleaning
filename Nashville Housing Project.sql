@@ -1,0 +1,156 @@
+--Cleaning Data in SQL Server
+
+
+SELECT *
+FROM PortfolioProject..NashvilleHousing
+
+
+--(1) Standardize Date Format
+
+SELECT SaleDate, CONVERT(DATE,SaleDate)
+FROM PortfolioProject..NashvilleHousing
+
+UPDATE PortfolioProject..NashvilleHousing
+SET SaleDate = CONVERT(DATE,SaleDate)
+
+ALTER TABLE PortfolioProject..NashvilleHousing
+ADD SaleDateConverted DATE;
+
+UPDATE PortfolioProject..NashvilleHousing
+SET SaleDateConverted = CONVERT(DATE,SaleDate)
+
+
+--- (2) Populate Property Adress Data
+
+SELECT *
+FROM PortfolioProject..NashvilleHousing
+WHERE PropertyAddress IS NULL
+ORDER BY ParcelID
+
+
+SELECT a.ParcelID, a.PropertyAddress, b.ParcelID, b.PropertyAddress, ISNULL(a.PropertyAddress, b.PropertyAddress)
+FROM PortfolioProject..NashvilleHousing a
+JOIN PortfolioProject..NashvilleHousing b
+ON a.ParcelID = b.ParcelID
+AND a.[UniqueID ] <> b.[UniqueID ]
+WHERE a.PropertyAddress IS NULL
+
+
+UPDATE a
+SET PropertyAddress = ISNULL(a.PropertyAddress, b.PropertyAddress)
+FROM PortfolioProject..NashvilleHousing a
+JOIN PortfolioProject..NashvilleHousing b
+ON a.ParcelID = b.ParcelID
+AND a.[UniqueID ] <> b.[UniqueID ]
+WHERE a.PropertyAddress IS NULL
+
+
+--(3) Seprating the address column into different columns (Address, City, State)
+
+SELECT PropertyAddress
+FROM PortfolioProject..NashvilleHousing
+
+SELECT 
+SUBSTRING(PropertyAddress, 1, CHARINDEX(',', PropertyAddress)-1) AS Address,
+SUBSTRING(PropertyAddress, CHARINDEX(',', PropertyAddress)+1, LEN(PropertyAddress)) AS Address
+FROM PortfolioProject..NashvilleHousing
+
+ALTER TABLE PortfolioProject..NashvilleHousing
+ADD PropertySplitAdress NVARCHAR(400);
+
+UPDATE PortfolioProject..NashvilleHousing
+SET PropertySplitAdress = SUBSTRING(PropertyAddress, 1, CHARINDEX(',', PropertyAddress)-1)
+
+ALTER TABLE PortfolioProject..NashvilleHousing
+ADD PropertySplitCity NVARCHAR(400);
+
+UPDATE PortfolioProject..NashvilleHousing
+SET PropertySplitCity = SUBSTRING(PropertyAddress, CHARINDEX(',', PropertyAddress)+1, LEN(PropertyAddress))
+
+SELECT *
+FROM PortfolioProject..NashvilleHousing
+
+SELECT
+PARSENAME(REPLACE(OwnerAddress, ',', '.') ,3), 
+PARSENAME(REPLACE(OwnerAddress, ',', '.') ,2), 
+PARSENAME(REPLACE(OwnerAddress, ',', '.') ,1)
+FROM PortfolioProject..NashvilleHousing
+
+ALTER TABLE PortfolioProject..NashvilleHousing
+ADD OwnerSplitAddress NVARCHAR(400);
+
+UPDATE PortfolioProject..NashvilleHousing
+SET OwnerSplitAddress = PARSENAME(REPLACE(OwnerAddress, ',', '.') ,3)
+
+ALTER TABLE PortfolioProject..NashvilleHousing
+ADD OwnerSplitCity NVARCHAR(400);
+
+UPDATE PortfolioProject..NashvilleHousing
+SET OwnerSplitCity = PARSENAME(REPLACE(OwnerAddress, ',', '.') ,2)
+
+ALTER TABLE PortfolioProject..NashvilleHousing
+ADD OwnerSplitState NVARCHAR(400);
+
+UPDATE PortfolioProject..NashvilleHousing
+SET OwnerSplitState = PARSENAME(REPLACE(OwnerAddress, ',', '.') ,1)
+
+SELECT *
+FROM PortfolioProject..NashvilleHousing
+
+
+--(4) Changing Y to 'Yes' and N to 'No' in "SoldAsVacant" Column
+
+SELECT DISTINCT(SoldAsVacant), COUNT(SoldAsVacant)
+FROM PortfolioProject..NashvilleHousing
+GROUP BY SoldAsVacant
+ORDER BY 2 DESC
+
+
+SELECT SoldAsVacant,
+CASE WHEN SoldAsVacant = 'Y' THEN 'Yes'
+	WHEN SoldAsVacant = 'N' THEN 'No'
+	ELSE SoldAsVacant
+	END
+FROM PortfolioProject..NashvilleHousing
+
+UPDATE PortfolioProject..NashvilleHousing
+SET SoldAsVacant = CASE WHEN SoldAsVacant = 'Y' THEN 'Yes'
+	WHEN SoldAsVacant = 'N' THEN 'No'
+	ELSE SoldAsVacant
+	END
+
+
+---(5) Remove Duplicates
+
+
+WITH RownumCTE as(
+SELECT *,
+ROW_NUMBER() OVER (
+PARTITION BY ParcelID, PropertyAddress, SalePrice, SaleDate, LegalReference
+ORDER BY UniqueID) row_num
+
+FROM PortfolioProject..NashvilleHousing
+)
+DELETE 
+FROM RowNumCTE
+WHERE row_num > 1
+ORDER BY PropertyAddress
+
+--To check if there are no more duplicates
+SELECT *
+FROM RowNumCTE
+WHERE row_num > 1
+ORDER BY PropertyAddress
+
+
+-- (6) Deleting Unused Columns
+
+
+SELECT *
+FROM PortfolioProject..NashvilleHousing
+
+ALTER TABLE PortfolioProject..NashvilleHousing
+DROP COLUMN OwnerAddress, TaxDistrict, PropertyAddress
+
+ALTER TABLE PortfolioProject..NashvilleHousing
+DROP COLUMN SaleDate
